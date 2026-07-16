@@ -1,0 +1,33 @@
+# Opening Doctor backend: FastAPI + ingestion/rag/vector/database modules.
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# System deps for psycopg2 (build) and general SSL/certs.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Copy every module the backend imports at runtime. Kept as separate COPY
+# layers (matching the project's module boundaries) so a change in one
+# module doesn't invalidate the Docker layer cache for the others.
+COPY backend/ backend/
+COPY ingestion/ ingestion/
+COPY rag/ rag/
+COPY vector/ vector/
+COPY database/ database/
+COPY seed_data/ seed_data/
+COPY alembic.ini alembic.ini
+COPY docker/backend-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8000
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
