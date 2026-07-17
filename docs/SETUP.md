@@ -125,9 +125,12 @@ cd backend
 python -m pytest ../tests/ -v
 ```
 
-This runs the 39 unit tests (`tests/unit/`). `tests/integration/` is
-scaffolded but not yet populated — see the note in the main
-[README](../README.md#testing).
+This runs all 54 tests: 39 unit tests (`tests/unit/`) plus 15 integration
+tests (`tests/integration/`) that spin up the real FastAPI app against a
+disposable `opening_doctor_test` Postgres database, created and dropped
+automatically per test session — see `tests/integration/conftest.py`. Your
+dev/demo database is never touched, and the LLM provider is force-set to an
+unconfigured state so the suite never depends on any provider being reachable.
 
 ## Troubleshooting
 

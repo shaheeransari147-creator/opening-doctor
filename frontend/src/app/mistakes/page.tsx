@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/error-state";
 import { useAsync } from "@/hooks/use-async";
 import { api, MistakeGroup } from "@/lib/api";
+
+const RESULT_LABEL: Record<string, string> = {
+  "1-0": "White won",
+  "0-1": "Black won",
+  "1/2-1/2": "Draw",
+  "*": "Unfinished",
+};
 
 export default function MistakesPage() {
   const { data, error, loading, reload } = useAsync(() => api.listMistakes({ limit: 20 }), []);
@@ -84,6 +92,8 @@ function MistakeCard({ group }: { group: MistakeGroup }) {
         <Badge variant="warning">{group.avg_eval_loss.toFixed(2)} avg. eval loss</Badge>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        <GamesList games={group.games} />
+
         {!explanation && (
           <Button variant="outline" size="sm" className="w-fit" onClick={handleExplain} disabled={loadingExplain}>
             <Sparkles className="h-4 w-4" />
@@ -107,5 +117,55 @@ function MistakeCard({ group }: { group: MistakeGroup }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function GamesList({ games }: { games: MistakeGroup["games"] }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const COLLAPSED_COUNT = 3;
+  const visible = expanded ? games : games.slice(0, COLLAPSED_COUNT);
+  const hiddenCount = games.length - visible.length;
+
+  if (games.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        Occurred in {games.length} game{games.length !== 1 ? "s" : ""}
+      </p>
+      <ul className="flex flex-col gap-1.5">
+        {visible.map((g) => (
+          <li key={g.game_id}>
+            <Link
+              href={`/games/${g.game_id}`}
+              className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent/10"
+            >
+              <span className="font-medium">vs {g.opponent}</span>
+              <span className="text-muted-foreground">
+                {g.game_date ?? "no date"} · move {g.move_number} ({g.color}) · {RESULT_LABEL[g.result] ?? g.result}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {games.length > COLLAPSED_COUNT && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-1 h-7 text-xs text-muted-foreground"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" /> Show fewer
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" /> Show {hiddenCount} more
+            </>
+          )}
+        </Button>
+      )}
+    </div>
   );
 }

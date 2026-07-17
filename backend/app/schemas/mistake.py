@@ -14,13 +14,22 @@ class MistakeExplanationOut(BaseModel):
     citations: list[CitationOut]
 
 
+class MistakeGameRefOut(BaseModel):
+    game_id: int
+    opponent: str
+    game_date: str | None
+    move_number: int
+    color: str
+    result: str
+
+
 class MistakeGroupOut(BaseModel):
     mistake_type: str
     san: str
     occurrences: int
     avg_eval_loss: float
     example_description: str
-    game_ids: list[int]
+    games: list[MistakeGameRefOut]
     headline: str
     explanation: MistakeExplanationOut | None = None
 

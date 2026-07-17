@@ -88,13 +88,22 @@ export interface Citation {
   source: string;
 }
 
+export interface MistakeGameRef {
+  game_id: number;
+  opponent: string;
+  game_date: string | null;
+  move_number: number;
+  color: string;
+  result: string;
+}
+
 export interface MistakeGroup {
   mistake_type: string;
   san: string;
   occurrences: number;
   avg_eval_loss: number;
   example_description: string;
-  game_ids: number[];
+  games: MistakeGameRef[];
   headline: string;
   explanation: { explanation_markdown: string; citations: Citation[] } | null;
 }

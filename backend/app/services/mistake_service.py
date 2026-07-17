@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.rag_context import RagContext
 from backend.app.repositories.mistake_repository import MistakeGroup, MistakeRepository
-from backend.app.schemas.mistake import CitationOut, MistakeExplanationOut, MistakeGroupOut
+from backend.app.schemas.mistake import CitationOut, MistakeExplanationOut, MistakeGameRefOut, MistakeGroupOut
 from rag.generation.explainer import MistakeExplanationRequest, explain_mistake
 from rag.retrieval.hybrid import hybrid_retrieve
 
@@ -82,7 +82,17 @@ async def get_grouped_mistakes(
                 occurrences=group.occurrences,
                 avg_eval_loss=group.avg_eval_loss,
                 example_description=group.example_description,
-                game_ids=group.game_ids,
+                games=[
+                    MistakeGameRefOut(
+                        game_id=g.game_id,
+                        opponent=g.opponent,
+                        game_date=g.game_date,
+                        move_number=g.move_number,
+                        color=g.color,
+                        result=g.result,
+                    )
+                    for g in group.games
+                ],
                 headline=_headline(group),
                 explanation=explanation_out,
             )

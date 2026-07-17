@@ -188,10 +188,13 @@ cd backend
 python -m pytest ../tests/ -v
 ```
 
-39 unit tests covering PGN parsing, opening/theory-exit detection, mistake
-heuristics, chunking, and the LLM provider abstraction. Integration tests
-(exercising the full FastAPI app against a disposable Postgres test database)
-are planned but not yet written — `tests/integration/` is currently empty.
+54 tests: 39 unit tests (PGN parsing, opening/theory-exit detection, mistake
+heuristics, chunking, LLM provider abstraction) plus 15 integration tests
+that exercise the full FastAPI app end-to-end (upload → games → mistakes →
+dashboard → openings → study-plan → analyze) against a disposable
+`opening_doctor_test` Postgres database, created and torn down automatically
+— never your dev/demo data. The LLM provider is force-unconfigured for
+these, so the suite never depends on OpenRouter/Ollama/Groq being reachable.
 
 ## Documentation
 
