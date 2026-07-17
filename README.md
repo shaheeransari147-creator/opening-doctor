@@ -40,12 +40,14 @@ base, and explains what to do better — like a coach, not an engine printout.
 | Chess | python-chess |
 | Embeddings | BAAI/bge-small-en-v1.5 via [fastembed](https://github.com/qdrant/fastembed) (ONNX, CPU, free) |
 | Reranker | Xenova/ms-marco-MiniLM-L-6-v2 via fastembed (CPU, free) |
-| LLM | Configurable — **local Ollama by default (free, keyless)**, or Groq / OpenAI GPT-5 |
+| LLM | Configurable — **OpenRouter by default** (free-tier model, needs a free key), or local Ollama (fully keyless) / Groq / OpenAI GPT-5 |
 | Sparse search | BM25 (`rank_bm25`) |
 
-Every model in the default configuration is free and runs with no API key.
-See [Configuring the LLM provider](#configuring-the-llm-provider) to switch
-to Groq or GPT-5.
+The embedding model and reranker are always free and run locally with no API
+key. The LLM defaults to OpenRouter's free tier (needs a free key from
+[openrouter.ai/keys](https://openrouter.ai/keys)); swap in fully local/keyless
+Ollama, Groq, or GPT-5 instead — see
+[Configuring the LLM provider](#configuring-the-llm-provider).
 
 ## Project structure
 
@@ -76,16 +78,18 @@ Requires Docker Desktop.
 
 ```bash
 cp .env.example .env
+# Edit .env: set OPENROUTER_API_KEY (free at https://openrouter.ai/keys),
+# or switch LLM_PROVIDER=ollama for a fully offline/keyless setup instead.
 docker compose up --build
 ```
 
-This starts Postgres, Qdrant, Ollama, the backend (migrations run
-automatically on boot), and the frontend.
+This starts Postgres, Qdrant, Ollama (only used if `LLM_PROVIDER=ollama`),
+the backend (migrations run automatically on boot), and the frontend.
 
-Pull a model into the Ollama container once, the first time:
+If using Ollama, pull a model into its container once, the first time:
 
 ```bash
-docker compose exec ollama ollama pull llama3.2:1b
+docker compose exec ollama ollama pull llama3.2:3b
 ```
 
 Then seed the knowledge base and sample games:
@@ -111,9 +115,11 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 
 # Postgres + Qdrant: run natively or via `docker compose up postgres qdrant`
-# Ollama: install from ollama.com, then `ollama pull llama3.2:1b`
+# LLM: get a free key at https://openrouter.ai/keys (default provider), or
+# install Ollama from ollama.com + `ollama pull llama3.2:3b` for a fully
+# offline/keyless setup instead.
 
-cp ../.env.example ../.env   # edit POSTGRES_* to match your local Postgres
+cp ../.env.example ../.env   # edit POSTGRES_* and OPENROUTER_API_KEY
 
 cd ..
 python -m alembic upgrade head
@@ -132,14 +138,19 @@ npm run dev      # http://localhost:3000
 
 ## Configuring the LLM provider
 
-Set `LLM_PROVIDER` in `.env` to `ollama` (default), `groq`, or `openai`:
+Set `LLM_PROVIDER` in `.env` to `openrouter` (default), `ollama`, `groq`, or `openai`:
 
 ```bash
-# Free, local, no API key (default)
-LLM_PROVIDER=ollama
-OLLAMA_MODEL=llama3.2:1b        # or llama3.2:3b for better quality, slower
+# Free-tier model, hosted — needs a free key from https://openrouter.ai/keys (default)
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
 
-# Free, hosted, fast — needs a key from https://console.groq.com/keys
+# Fully local, no API key at all
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=llama3.2:3b        # or llama3.2:1b for faster/lower quality
+
+# Free, hosted, very fast — needs a key from https://console.groq.com/keys
 LLM_PROVIDER=groq
 GROQ_API_KEY=...
 
@@ -177,10 +188,10 @@ cd backend
 python -m pytest ../tests/ -v
 ```
 
-52 tests: unit tests for PGN parsing, opening/theory-exit detection, mistake
-heuristics, chunking, and the LLM provider abstraction; integration tests
-that exercise the full FastAPI app against a disposable Postgres test
-database (`opening_doctor_test`, created automatically, never your dev data).
+39 unit tests covering PGN parsing, opening/theory-exit detection, mistake
+heuristics, chunking, and the LLM provider abstraction. Integration tests
+(exercising the full FastAPI app against a disposable Postgres test database)
+are planned but not yet written — `tests/integration/` is currently empty.
 
 ## Documentation
 
@@ -198,6 +209,8 @@ database (`opening_doctor_test`, created automatically, never your dev data).
 - Mistake "evaluation loss" is a heuristic severity score calibrated to chess
   principles, not a chess-engine centipawn evaluation — no engine is part of
   this stack by design (see docs/ARCHITECTURE.md).
-- Local Ollama inference latency depends heavily on your CPU; the first
-  request after a period of inactivity also pays a model-load cost. Groq is
-  much faster if you have a free API key.
+- The default OpenRouter free-tier model is rate-limited and its latency
+  varies with OpenRouter's own load; Groq is faster and also free if you'd
+  rather use that key. Local Ollama inference latency depends heavily on your
+  CPU, and the first request after a period of inactivity pays a model-load
+  cost — but it needs no API key and no internet access at all.

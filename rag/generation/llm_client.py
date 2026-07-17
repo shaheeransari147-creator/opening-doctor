@@ -1,11 +1,11 @@
 """Provider-agnostic LLM client.
 
-The provider is fully configurable via .env (LLM_PROVIDER=groq|openai|ollama).
-Groq and Ollama both expose OpenAI-compatible `/v1/chat/completions` endpoints,
-so a single `openai.AsyncOpenAI` client with a swapped `base_url`/`api_key`/
-`model` covers all three -- including OpenAI's GPT-5 itself. This keeps the
-rest of the RAG pipeline (explainer, chat, study plan) completely unaware of
-which concrete provider is in use.
+The provider is fully configurable via .env (LLM_PROVIDER=ollama|groq|openrouter|openai).
+Groq, Ollama, OpenRouter, and OpenAI all expose OpenAI-compatible
+`/v1/chat/completions` endpoints, so a single `openai.AsyncOpenAI` client
+with a swapped `base_url`/`api_key`/`model` covers all four -- including
+OpenAI's GPT-5 itself. This keeps the rest of the RAG pipeline (explainer,
+chat, study plan) completely unaware of which concrete provider is in use.
 """
 from __future__ import annotations
 
@@ -37,6 +37,10 @@ def resolve_provider_config(settings: Settings) -> LLMProviderConfig:
 
     if provider == "openai":
         return LLMProviderConfig("openai", settings.openai_base_url, settings.openai_api_key, settings.openai_model)
+    if provider == "openrouter":
+        return LLMProviderConfig(
+            "openrouter", settings.openrouter_base_url, settings.openrouter_api_key, settings.openrouter_model
+        )
     if provider == "ollama":
         # Ollama's local server doesn't require a real API key, but the OpenAI
         # SDK requires a non-empty string to be passed.
@@ -58,7 +62,16 @@ class LLMClient:
 
     def _get_client(self) -> AsyncOpenAI:
         if self._client is None:
-            self._client = AsyncOpenAI(base_url=self.config.base_url, api_key=self.config.api_key)
+            default_headers = None
+            if self.config.provider == "openrouter":
+                # Optional but recommended by OpenRouter for attribution/rate-limit context.
+                default_headers = {
+                    "HTTP-Referer": "https://github.com/opening-doctor",
+                    "X-Title": "Opening Doctor",
+                }
+            self._client = AsyncOpenAI(
+                base_url=self.config.base_url, api_key=self.config.api_key, default_headers=default_headers
+            )
         return self._client
 
     async def complete(self, system_prompt: str, user_prompt: str) -> str:

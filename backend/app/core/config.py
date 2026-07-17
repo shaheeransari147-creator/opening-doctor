@@ -63,11 +63,15 @@ class Settings(BaseSettings):
     retrieval_top_k_dense: int = 20
     retrieval_top_k_final: int = 5
 
-    # --- LLM provider (configurable; defaults to local, keyless Ollama) ---
-    llm_provider: str = "ollama"  # "ollama" | "groq" | "openai"
+    # --- LLM provider (configurable) ---
+    llm_provider: str = "openrouter"  # "openrouter" | "ollama" | "groq" | "openai"
+
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
 
     ollama_base_url: str = "http://localhost:11434/v1"
-    ollama_model: str = "llama3.2:1b"
+    ollama_model: str = "llama3.2:3b"
 
     groq_api_key: str = ""
     groq_base_url: str = "https://api.groq.com/openai/v1"

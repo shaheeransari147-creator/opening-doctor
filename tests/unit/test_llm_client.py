@@ -8,10 +8,25 @@ def _settings(**overrides) -> Settings:
     return Settings(_env_file=None, **overrides)
 
 
-def test_defaults_to_ollama_provider():
+def test_defaults_to_openrouter_provider():
     config = resolve_provider_config(_settings())
-    assert config.provider == "ollama"
-    assert config.base_url == "http://localhost:11434/v1"
+    assert config.provider == "openrouter"
+    assert config.base_url == "https://openrouter.ai/api/v1"
+    assert config.model == "nvidia/nemotron-3-ultra-550b-a55b:free"
+
+
+def test_resolves_openrouter_provider():
+    config = resolve_provider_config(
+        _settings(llm_provider="openrouter", openrouter_api_key="sk-or-test", openrouter_model="some/model:free")
+    )
+    assert config.provider == "openrouter"
+    assert config.api_key == "sk-or-test"
+    assert config.model == "some/model:free"
+
+
+def test_openrouter_client_not_configured_without_api_key():
+    client = LLMClient(_settings(llm_provider="openrouter", openrouter_api_key=""))
+    assert client.is_configured is False
 
 
 def test_resolves_openai_provider():

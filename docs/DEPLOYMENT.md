@@ -8,30 +8,34 @@
 |---|---|---|
 | `postgres` | `postgres:16-alpine` | Primary database |
 | `qdrant` | `qdrant/qdrant:latest` | Vector store (server mode) |
-| `ollama` | `ollama/ollama:latest` | Local LLM inference (default provider) |
+| `ollama` | `ollama/ollama:latest` | Local LLM inference (only used if `LLM_PROVIDER=ollama`) |
 | `backend` | `docker/Dockerfile.backend` | FastAPI app |
 | `frontend` | `docker/Dockerfile.frontend` | Next.js production build |
 
 `backend` waits for Postgres to be healthy, then runs Alembic migrations
 automatically on every boot (`docker/backend-entrypoint.sh`) before starting
 uvicorn — no manual migration step needed in this path. It talks to `qdrant`
-and `ollama` over the Docker network (`QDRANT_MODE=server`,
-`OLLAMA_BASE_URL=http://ollama:11434/v1`, both overridden in the compose
-file regardless of what `.env` says, since those hostnames only resolve
-inside the Docker network).
+over the Docker network (`QDRANT_MODE=server`, `QDRANT_URL=http://qdrant:6333`,
+force-overridden in the compose file since that hostname only resolves inside
+the Docker network); `OLLAMA_BASE_URL=http://ollama:11434/v1` is set the same
+way, but only matters if `LLM_PROVIDER=ollama`. The default provider,
+`openrouter`, just needs `OPENROUTER_API_KEY` in `.env` — no Docker-network
+wiring required.
 
 ## Deploy
 
 ```bash
 cp .env.example .env
+# Set OPENROUTER_API_KEY (free at https://openrouter.ai/keys), or switch
+# LLM_PROVIDER=ollama for the bundled local-inference container instead.
 docker compose up --build -d
 ```
 
-Pull an Ollama model into the running container (one-time — the model is
-cached in the `ollama_data` volume):
+If using Ollama, pull a model into the running container (one-time — the
+model is cached in the `ollama_data` volume):
 
 ```bash
-docker compose exec ollama ollama pull llama3.2:1b
+docker compose exec ollama ollama pull llama3.2:3b
 ```
 
 Seed the reference opening database and knowledge base (one-time, or
@@ -61,10 +65,11 @@ environment:
   OLLAMA_BASE_URL: http://ollama:11434/v1
 ```
 
-To use Groq or OpenAI instead of the bundled Ollama container, set
-`LLM_PROVIDER=groq` (+ `GROQ_API_KEY`) or `LLM_PROVIDER=openai` (+
-`OPENAI_API_KEY`) in `.env` — the `ollama` service can then be removed from
-`docker-compose.yml` (or just left running unused).
+To use Ollama, Groq, or OpenAI instead of the default OpenRouter provider,
+set `LLM_PROVIDER=ollama`, `LLM_PROVIDER=groq` (+ `GROQ_API_KEY`), or
+`LLM_PROVIDER=openai` (+ `OPENAI_API_KEY`) in `.env`. The `ollama` service
+in `docker-compose.yml` can be removed if you're not using it (or just left
+running unused — it only costs disk space until a model is pulled into it).
 
 ## Data persistence
 

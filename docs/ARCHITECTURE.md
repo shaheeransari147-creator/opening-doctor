@@ -35,7 +35,7 @@ flowchart TB
 
     DB[(PostgreSQL)]
     QdrantDB[(Qdrant)]
-    LLM["LLM provider<br/>Ollama (default) / Groq / OpenAI"]
+    LLM["LLM provider<br/>OpenRouter (default) / Ollama / Groq / OpenAI"]
 
     FE <-->|REST /api/*| Routers
     Routers --> Services
@@ -136,15 +136,19 @@ never claims it is.
 
 ## LLM provider abstraction
 
-`rag/generation/llm_client.py` wraps three providers behind one interface,
-because Ollama, Groq, and OpenAI (and GPT-5) all expose an
+`rag/generation/llm_client.py` wraps four providers behind one interface,
+because OpenRouter, Ollama, Groq, and OpenAI (and GPT-5) all expose an
 OpenAI-compatible `/v1/chat/completions` endpoint. Switching providers is a
-`.env` change (`LLM_PROVIDER=ollama|groq|openai`), not a code change. When
-the configured provider has no API key (or, for Ollama, is simply not
-running), `LLMClient.is_configured` is checked *before* any network call,
-raising a typed `LLMNotConfiguredError` that FastAPI maps to a clean `503`
-— `/api/chat` and `/api/mistakes?explain=true` never crash or silently
-return an empty/hallucinated answer when the LLM isn't ready.
+`.env` change (`LLM_PROVIDER=openrouter|ollama|groq|openai`), not a code
+change. The default, OpenRouter, routes to a free-tier model
+(`nvidia/nemotron-3-ultra-550b-a55b:free`) and still requires a free API key
+(OpenRouter gates even `:free` models behind a key for rate-limiting); Ollama
+is the fully keyless/offline alternative. When the configured provider has
+no API key (or, for Ollama, is simply not running),
+`LLMClient.is_configured` is checked *before* any network call, raising a
+typed `LLMNotConfiguredError` that FastAPI maps to a clean `503` —
+`/api/chat` and `/api/mistakes?explain=true` never crash or silently return
+an empty/hallucinated answer when the LLM isn't ready.
 
 ## Single-tenant scope
 

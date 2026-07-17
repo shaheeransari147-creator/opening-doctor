@@ -9,7 +9,11 @@ up with these steps, in order.
 & "C:\pgsql17\bin\pg_ctl.exe" -D "C:\pgsql17\data" -l "C:\pgsql17\logfile.txt" start
 ```
 
-## 2. Start Ollama (if not already running)
+## 2. Start Ollama (only if LLM_PROVIDER=ollama in .env)
+
+The default LLM provider is OpenRouter (just needs `OPENROUTER_API_KEY` set
+in `.env` — no local service to start). Skip this step unless you've
+switched `LLM_PROVIDER=ollama`.
 
 Ollama installs as a background service and usually starts automatically on
 login. Check with:

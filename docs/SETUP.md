@@ -9,7 +9,7 @@ package-manager substitutions).
 - **Python 3.12** — `winget install Python.Python.3.12` / `brew install python@3.12` / your distro's package manager
 - **Node.js LTS** (Next.js 15 needs Node 18.18+) — `winget install OpenJS.NodeJS.LTS` / `brew install node`
 - **PostgreSQL 16 or 17** — native install, or `docker compose up postgres` if you have Docker
-- **Ollama** (for the default free/local LLM) — download from [ollama.com](https://ollama.com), then `ollama pull llama3.2:1b`
+- **An LLM provider** — default is [OpenRouter](https://openrouter.ai/keys) (free key, hosted); for a fully offline/keyless setup instead, install [Ollama](https://ollama.com) and `ollama pull llama3.2:3b`
 
 ## 1. Database
 
@@ -79,15 +79,28 @@ http://localhost:8000/docs has interactive Swagger docs.
 
 ## 3. LLM provider
 
-Default is local Ollama, no API key:
+Default is OpenRouter, using a free-tier model. Get a free key at
+https://openrouter.ai/keys (required even for `:free` models) and set it in
+`.env`:
 
-```bash
-ollama pull llama3.2:1b
+```env
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your-key-here
+OPENROUTER_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
 ```
 
-`.env` already defaults to `LLM_PROVIDER=ollama` /
-`OLLAMA_MODEL=llama3.2:1b`. To use Groq instead (faster, needs a free key
-from https://console.groq.com/keys):
+For a fully offline/keyless setup instead, switch to local Ollama:
+
+```bash
+ollama pull llama3.2:3b
+```
+
+```env
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=llama3.2:3b
+```
+
+Or Groq (also free, very fast, needs a key from https://console.groq.com/keys):
 
 ```env
 LLM_PROVIDER=groq
@@ -112,10 +125,9 @@ cd backend
 python -m pytest ../tests/ -v
 ```
 
-Integration tests create their own `opening_doctor_test` database
-automatically (see `tests/integration/conftest.py`) — they never touch your
-dev/demo data, and force a guaranteed-unconfigured LLM provider so the
-suite never depends on Ollama/Groq actually being reachable.
+This runs the 39 unit tests (`tests/unit/`). `tests/integration/` is
+scaffolded but not yet populated — see the note in the main
+[README](../README.md#testing).
 
 ## Troubleshooting
 
@@ -125,9 +137,10 @@ suite never depends on Ollama/Groq actually being reachable.
   Hugging Face; check your network/proxy. Models are cached after the
   first successful download.
 - **`/api/chat` or `/api/mistakes?explain=true` return `503`** — no LLM
-  provider is configured or reachable. If using Ollama, confirm
-  `ollama list` shows a pulled model and `ollama serve` is running
-  (the installer usually starts it as a background service automatically).
+  provider is configured or reachable. If using OpenRouter, check
+  `OPENROUTER_API_KEY` is set. If using Ollama, confirm `ollama list` shows
+  a pulled model and `ollama serve` is running (the installer usually starts
+  it as a background service automatically).
 - **Windows: PostgreSQL GUI installer hangs** — if you hit this, the NSIS
   installer payload can be extracted directly with 7-Zip and run via
   `initdb`/`pg_ctl` without the wizard; see the git history of this
