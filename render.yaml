@@ -1,0 +1,48 @@
+# Render Blueprint for the Opening Doctor backend.
+# Deploy: connect this repo at https://dashboard.render.com/blueprints and
+# Render will read this file automatically. See docs/DEPLOY_FREE.md for the
+# full walkthrough, including the env vars marked `sync: false` below (those
+# hold secrets/values Render won't infer -- you set them once in the
+# dashboard after the first deploy).
+services:
+  - type: web
+    name: opening-doctor-backend
+    runtime: docker
+    dockerfilePath: docker/Dockerfile.backend
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+
+      # Set this to your Neon (or other managed Postgres) connection string.
+      - key: DATABASE_URL
+        sync: false
+
+      # Comma-separated list including your Netlify frontend URL, e.g.
+      # https://your-site.netlify.app
+      - key: CORS_ORIGINS
+        sync: false
+
+      # Local/embedded Qdrant -- no separate vector DB service needed. Free
+      # tier disk is ephemeral, so the backend entrypoint re-indexes the
+      # (small, 8-document) knowledge base into it on every boot.
+      - key: QDRANT_MODE
+        value: local
+
+      - key: EMBEDDING_MODEL
+        value: BAAI/bge-small-en-v1.5
+      - key: EMBEDDING_DIM
+        value: "384"
+      - key: RERANKER_MODEL
+        value: Xenova/ms-marco-MiniLM-L-6-v2
+
+      - key: LLM_PROVIDER
+        value: openrouter
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: nvidia/nemotron-3-ultra-550b-a55b:free

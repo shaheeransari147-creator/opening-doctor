@@ -203,7 +203,8 @@ these, so the suite never depends on OpenRouter/Ollama/Groq being reachable.
 - [docs/ER_DIAGRAM.md](docs/ER_DIAGRAM.md) — database schema
 - [docs/API.md](docs/API.md) — endpoint reference
 - [docs/SETUP.md](docs/SETUP.md) — local development setup
-- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Docker Compose deployment
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Docker Compose deployment (self-hosted/VPS)
+- [docs/DEPLOY_FREE.md](docs/DEPLOY_FREE.md) — free deployment on Netlify + Render + Neon (no Docker on your machine, no credit card)
 
 ## Known limitations (MVP scope)
 

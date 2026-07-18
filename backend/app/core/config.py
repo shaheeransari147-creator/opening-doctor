@@ -3,10 +3,34 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _to_asyncpg_url(raw: str) -> str:
+    """Converts a standard postgres://.../postgresql://... URL (e.g. from Neon,
+    Render, or any Heroku-style DATABASE_URL) into one SQLAlchemy's asyncpg
+    dialect accepts: translates `sslmode` -> `ssl` (asyncpg's param name) and
+    drops params asyncpg doesn't understand (e.g. Neon's `channel_binding`).
+    """
+    parts = urlsplit(raw)
+    query = parse_qs(parts.query)
+    query.pop("channel_binding", None)
+    sslmode = query.pop("sslmode", None)
+    if sslmode:
+        query["ssl"] = sslmode
+    new_query = urlencode(query, doseq=True)
+    return urlunsplit(("postgresql+asyncpg", parts.netloc, parts.path, new_query, parts.fragment))
+
+
+def _to_psycopg2_url(raw: str) -> str:
+    """psycopg2 understands `sslmode` natively, so only the scheme needs changing."""
+    parts = urlsplit(raw)
+    return urlunsplit(("postgresql+psycopg2", parts.netloc, parts.path, parts.query, parts.fragment))
 
 
 class Settings(BaseSettings):
@@ -23,6 +47,12 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # --- Postgres ---
+    # If DATABASE_URL is set (the convention Render/Neon/Railway/Heroku all
+    # use), it takes precedence over the individual POSTGRES_* fields below --
+    # this lets a managed Postgres host's connection string just work without
+    # needing to be split apart into components.
+    database_url_env: str = Field(default="", validation_alias="DATABASE_URL")
+
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_user: str = "postgres"
@@ -31,6 +61,8 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        if self.database_url_env:
+            return _to_asyncpg_url(self.database_url_env)
         return (
             f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
@@ -38,6 +70,8 @@ class Settings(BaseSettings):
 
     @property
     def sync_database_url(self) -> str:
+        if self.database_url_env:
+            return _to_psycopg2_url(self.database_url_env)
         return (
             f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"

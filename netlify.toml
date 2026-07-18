@@ -1,0 +1,15 @@
+# Netlify config for the Next.js frontend. The repo is a monorepo (frontend/
+# is a subdirectory alongside backend/, ingestion/, rag/, etc.), so `base`
+# points Netlify at the right package.json; everything else in the repo is
+# ignored for this build.
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# NEXT_PUBLIC_API_URL (pointing at your deployed backend, e.g. a Render URL)
+# is set as a Netlify environment variable in the dashboard, not here --
+# see docs/DEPLOY_FREE.md.
